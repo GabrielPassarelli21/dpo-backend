@@ -102,11 +102,16 @@ def parse_plano(ws):
     rows = list(ws.iter_rows(values_only=True))
     acoes = []
 
-    # Find header row
+    # Find header row — must contain BOTH a pilar/ação column AND responsável
+    # This avoids matching the title "PLANO DE AÇÃO - DPO - ABS"
     header_row = -1
     for i, row in enumerate(rows[:8]):
         row_str = [str(c or '').lower().strip() for c in row]
-        if any('ação' in c or 'acao' in c or 'responsável' in c or 'responsavel' in c for c in row_str):
+        has_resp   = any('responsável' in c or 'responsavel' in c for c in row_str)
+        has_pilar  = any(c == 'pilar' for c in row_str)
+        has_status = any(c == 'status' for c in row_str)
+        # Need at least responsável + (pilar or status) to confirm it's the real header
+        if has_resp and (has_pilar or has_status):
             header_row = i
             break
     if header_row < 0:
