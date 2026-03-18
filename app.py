@@ -20,6 +20,8 @@ def parse_pilar(ws):
     if not rows or len(rows) < 3:
         return None
 
+    # Structure is always: row0=empty, row1=scores, row2=headers(Fev/Mar...)
+    # Find header row (contains 'Fev')
     header_row = -1
     for i, row in enumerate(rows[:6]):
         row_str = [str(c or '').strip().lower() for c in row]
@@ -36,15 +38,16 @@ def parse_pilar(ws):
 
     month_cols = list(range(fev_idx, min(fev_idx + 11, len(headers))))
 
-    # Overall scores (row 0)
+    # Overall scores are ALWAYS on the row just before header (header_row - 1)
     overall = [0.0] * 11
-    if header_row > 0:
-        score_row = rows[0]
+    score_row_idx = header_row - 1
+    if score_row_idx >= 0:
+        score_row = rows[score_row_idx]
         for mi, col in enumerate(month_cols):
             if col < len(score_row):
                 try:
                     v = float(score_row[col] or 0)
-                    overall[mi] = v
+                    overall[mi] = round(v, 6)
                 except:
                     pass
 
@@ -192,7 +195,7 @@ def upload():
 
         for ps in PILAR_SHEETS:
             idx = next((i for i, s in enumerate(sheet_names)
-                        if s == ps or s.startswith(ps[:4])), -1)
+                        if s.strip() == ps or s.strip().startswith(ps[:4])), -1)
             if idx >= 0:
                 parsed = parse_pilar(wb.worksheets[idx])
                 if parsed:
